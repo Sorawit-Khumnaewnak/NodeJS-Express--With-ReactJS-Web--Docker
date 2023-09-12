@@ -1,0 +1,49 @@
+version: "3.8"
+services:
+  web:
+    build:
+      context: .
+      args:
+          - PORT_INTERNAL=${PORT}
+    image: local/demo_app_web
+    container_name: demo_app_web
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      - .:/usr/src/app
+    restart: unless-stopped
+    external_links:
+      - mongodb:mongodb
+    networks:
+      static-network-demo:
+        ipv4_address: 172.24.0.3
+
+  mongodb:
+    image: mongo:4.4
+    container_name: demo_app_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGODB_USERNAME: ${MONGODB_USERNAME}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+      MONGODB_DBNAME: ${MONGODB_DBNAME}
+    command: mongod --port ${MONGODB_PORT_INTERNAL}
+    ports:
+      - "${MONGODB_PORT_EXTERNAL}:${MONGODB_PORT_INTERNAL}"
+    volumes:
+      - ./database/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh
+      - ./database/init-user.js:/docker-entrypoint-initdb.d/init-user.js
+      - demo_mongo_data:/data/db
+    restart: unless-stopped
+    networks:
+      static-network-demo:
+        ipv4_address: 172.24.0.2
+
+volumes:
+  demo_mongo_data:
+  
+networks:
+  static-network-demo:
+    ipam:
+      config:
+        - subnet: 172.24.0.0/24
